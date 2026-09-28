@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<StackPane
+        xmlns="http://javafx.com/javafx"
+        xmlns:fx="http://javafx.com/fxml"
+        fx:controller="com.example.onlinemeeting.controller.LoginController">
+
+    <VBox
+            alignment="CENTER"
+            maxWidth="380"
+            spacing="18">
+
+        <padding>
+            <Insets
+                    top="40"
+                    right="40"
+                    bottom="40"
+                    left="40"/>
+        </padding>
+
+        <Label text="OnlineMeeting">
+            <font>
+                <Font size="32"/>
+            </font>
+        </Label>
+
+        <Label
+                text="Họp trực tuyến đơn giản và nhanh chóng."/>
+
+        <TextField
+                fx:id="usernameField"
+                promptText="Nhập tên của bạn"
+                prefHeight="45"
+                onAction="#handleLogin"/>
+
+        <Button
+                text="Tiếp tục"
+                prefHeight="45"
+                maxWidth="Infinity"
+                onAction="#handleLogin"/>
+
+        <Label
+                fx:id="errorLabel"
+                style="-fx-text-fill: #d32f2f;"/>
+
+    </VBox>
+
+</StackPane>
