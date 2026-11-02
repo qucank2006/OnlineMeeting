@@ -1,12 +1,20 @@
 package com.example.onlinemeeting.server;
 
 import com.example.onlinemeeting.model.Room;
+import com.example.onlinemeeting.service.AuthService;
+import com.example.onlinemeeting.service.AuthService.AuthResult;
+import com.example.onlinemeeting.service.AuthService.Status;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.stream.Collectors;
 
 public class ClientHandler implements Runnable {
@@ -16,7 +24,11 @@ public class ClientHandler implements Runnable {
     private BufferedReader reader;
     private PrintWriter writer;
 
-    private String username;
+    private final AuthService authService = new AuthService();
+    private volatile AuthenticatedUser authenticatedUser;
+
+    private record AuthenticatedUser(long id, String username, String displayName) {
+    }
     private String currentRoomId;
 
     public ClientHandler(Socket socket) {
@@ -30,13 +42,13 @@ public class ClientHandler implements Runnable {
 
             reader = new BufferedReader(
                     new InputStreamReader(
-                            socket.getInputStream()
+                            socket.getInputStream(), StandardCharsets.UTF_8
                     )
             );
 
             writer = new PrintWriter(
                     socket.getOutputStream(),
-                    true
+                    true, StandardCharsets.UTF_8
             );
 
             String message;
@@ -62,7 +74,11 @@ public class ClientHandler implements Runnable {
 
     private void handleMessage(String message) {
 
-        if (message.startsWith("LOGIN|")) {
+        if (message.equals("REGISTER") || message.startsWith("REGISTER|")) {
+
+            handleRegister(message);
+
+        } else if (message.equals("LOGIN") || message.startsWith("LOGIN|")) {
 
             handleLogin(message);
 
@@ -85,7 +101,7 @@ public class ClientHandler implements Runnable {
 
     private void handleChat(String message) {
 
-        if (username == null || currentRoomId == null) {
+        if (!requireAuthentication() || currentRoomId == null) {
             return;
         }
 
@@ -106,7 +122,7 @@ public class ClientHandler implements Runnable {
 
         broadcastToRoom(
                 room,
-                "CHAT|" + username + "|" + content
+                "CHAT|" + getUsername() + "|" + content
         );
     }
 
@@ -121,27 +137,109 @@ public class ClientHandler implements Runnable {
     }
 
     private void handleLogin(String message) {
-
-        username =
-                message.substring("LOGIN|".length())
-                        .trim();
-
-        if (username.isEmpty()) {
-            send("LOGIN_FAILED");
+        if (authenticatedUser != null) {
+            send("LOGIN_FAILED|ALREADY_AUTHENTICATED");
             return;
         }
+        String[] fields;
+        try {
+            fields = decodeFields(message, 2);
+        } catch (IllegalArgumentException e) {
+            send("LOGIN_FAILED|MALFORMED_REQUEST");
+            return;
+        }
+        try {
+            AuthResult result = authService.login(fields[0], fields[1]);
+            if (result.status() != Status.LOGGED_IN) {
+                send("LOGIN_FAILED|" + result.status().name());
+                return;
+            }
+            // Validate stored identity too, before placing it in legacy room messages.
+            if (result.userId() == null || result.userId() <= 0
+                    || !safeText(result.username()) || !safeText(result.displayName())) {
+                send("LOGIN_FAILED|SERVICE_UNAVAILABLE");
+                return;
+            }
+            String encodedName = Base64.getEncoder().encodeToString(
+                    result.displayName().getBytes(StandardCharsets.UTF_8));
+            authenticatedUser = new AuthenticatedUser(
+                    result.userId(), result.username(), result.displayName());
+            send("LOGIN_SUCCESS|" + result.userId() + "|"
+                    + result.username() + "|" + encodedName);
+        } catch (RuntimeException e) {
+            // Never echo exception details or credential-bearing requests.
+            send("LOGIN_FAILED|SERVICE_UNAVAILABLE");
+        }
+    }
 
-        send("LOGIN_SUCCESS");
+    private void handleRegister(String message) {
+        String[] fields;
+        try {
+            fields = decodeFields(message, 4);
+        } catch (IllegalArgumentException e) {
+            send("REGISTER_FAILED|MALFORMED_REQUEST");
+            return;
+        }
+        try {
+            AuthResult result = authService.register(
+                    fields[0], fields[1], fields[2], fields[3]);
+            // Registration never changes this connection's authenticated identity.
+            send(result.status() == Status.REGISTERED
+                    ? "REGISTER_SUCCESS" : "REGISTER_FAILED|" + result.status().name());
+        } catch (RuntimeException e) {
+            send("REGISTER_FAILED|SERVICE_UNAVAILABLE");
+        }
+    }
 
-        System.out.println(
-                username + " đã kết nối."
-        );
+    private String[] decodeFields(String message, int count) {
+        // Bounds comfortably cover the service's UTF-8 field limits.
+        if (message.length() > 8192) {
+            throw new IllegalArgumentException("Invalid request");
+        }
+        String[] parts = message.split("\\|", -1);
+        if (parts.length != count + 1) {
+            throw new IllegalArgumentException("Invalid field count");
+        }
+        String[] decoded = new String[count];
+        for (int i = 0; i < count; i++) {
+            String encoded = parts[i + 1];
+            if (encoded.isEmpty() || encoded.length() > 2048) {
+                throw new IllegalArgumentException("Invalid field size");
+            }
+            byte[] bytes = Base64.getDecoder().decode(encoded);
+            try {
+                decoded[i] = StandardCharsets.UTF_8.newDecoder()
+                        .onMalformedInput(CodingErrorAction.REPORT)
+                        .onUnmappableCharacter(CodingErrorAction.REPORT)
+                        .decode(ByteBuffer.wrap(bytes)).toString();
+            } catch (CharacterCodingException e) {
+                throw new IllegalArgumentException("Invalid UTF-8");
+            }
+            if (!safeText(decoded[i])) {
+                throw new IllegalArgumentException("Invalid field");
+            }
+        }
+        return decoded;
+    }
+
+    private boolean safeText(String value) {
+        return value != null && !value.isBlank()
+                && value.indexOf('|') < 0 && value.indexOf('\r') < 0
+                && value.indexOf('\n') < 0 && value.indexOf('\0') < 0
+                && StandardCharsets.UTF_8.newEncoder().canEncode(value);
+    }
+
+    private boolean requireAuthentication() {
+        if (authenticatedUser == null) {
+            send("ERROR|NOT_LOGGED_IN");
+            return false;
+        }
+        return true;
     }
 
     private void handleCreateRoom() {
 
-        if (username == null) {
-            send("ERROR|NOT_LOGGED_IN");
+        if (!requireAuthentication()) {
             return;
         }
 
@@ -163,8 +261,7 @@ public class ClientHandler implements Runnable {
 
     private void handleJoinRoom(String message) {
 
-        if (username == null) {
-            send("ERROR|NOT_LOGGED_IN");
+        if (!requireAuthentication()) {
             return;
         }
 
@@ -191,6 +288,11 @@ public class ClientHandler implements Runnable {
                         this
                 );
 
+        if (room == null) {
+            send("JOIN_FAILED|ROOM_NOT_FOUND");
+            return;
+        }
+
         currentRoomId = roomId;
 
         send(
@@ -204,7 +306,7 @@ public class ClientHandler implements Runnable {
          */
         broadcastToOthers(
                 room,
-                "USER_JOINED|" + username
+                "USER_JOINED|" + getUsername()
         );
 
         /*
@@ -215,6 +317,10 @@ public class ClientHandler implements Runnable {
     }
 
     private void handleLeaveRoom() {
+
+        if (!requireAuthentication()) {
+            return;
+        }
 
         if (currentRoomId == null) {
             send("LEAVE_FAILED|NOT_IN_ROOM");
@@ -237,7 +343,7 @@ public class ClientHandler implements Runnable {
 
             broadcastToOthers(
                     room,
-                    "USER_LEFT|" + username
+                    "USER_LEFT|" + getUsername()
             );
         }
 
@@ -267,7 +373,7 @@ public class ClientHandler implements Runnable {
 
             broadcastToOthers(
                     room,
-                    "USER_LEFT|" + username
+                    "USER_LEFT|" + getUsername()
             );
         }
     }
@@ -309,6 +415,7 @@ public class ClientHandler implements Runnable {
     }
 
     public String getUsername() {
-        return username;
+        AuthenticatedUser user = authenticatedUser;
+        return user == null ? null : user.username();
     }
 }

@@ -5,11 +5,12 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane
+<StackPane fx:id="meetingRoot"
         xmlns="http://javafx.com/javafx"
         xmlns:fx="http://javafx.com/fxml"
         fx:controller="com.example.onlinemeeting.controller.MeetingController"
         style="-fx-background-color: #202124;">
+<BorderPane>
 
     <top>
 
@@ -208,3 +209,12 @@
     </bottom>
 
 </BorderPane>
+    <Label fx:id="toastLabel" visible="false" mouseTransparent="true"
+           wrapText="true" maxWidth="360" maxHeight="-Infinity"
+           StackPane.alignment="TOP_RIGHT"
+           style="-fx-background-color: #313244; -fx-text-fill: #cdd6f4; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 14 18; -fx-background-radius: 12; -fx-border-radius: 12; -fx-border-color: #cba6f7; -fx-effect: dropshadow(gaussian, rgba(17,17,27,0.35), 16, 0.15, 0, 4);">
+        <StackPane.margin>
+            <Insets top="20" right="20" bottom="20" left="20"/>
+        </StackPane.margin>
+    </Label>
+</StackPane>

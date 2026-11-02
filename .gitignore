@@ -2,6 +2,9 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+
+# Local database credentials
+/src/main/resources/database.properties
 .kotlin
 
 ### IntelliJ IDEA ###

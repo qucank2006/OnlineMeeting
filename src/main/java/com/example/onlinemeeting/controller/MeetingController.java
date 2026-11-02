@@ -10,13 +10,92 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import javafx.application.Platform;
+import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
+import javafx.animation.SequentialTransition;
+import javafx.util.Duration;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 public class MeetingController {
+
+    @FXML
+    private StackPane meetingRoot;
+
+    @FXML
+    private Label toastLabel;
+
+    // Accessed only on the JavaFX application thread.
+    private final Deque<String> toastQueue = new ArrayDeque<>();
+    private SequentialTransition toastAnimation;
+    private boolean meetingActive;
+
+    @FXML
+    private void initialize() {
+        meetingRoot.sceneProperty().addListener((observable, oldScene, newScene) -> {
+            if (newScene != null) {
+                newScene.windowProperty().addListener((property, oldWindow, newWindow) -> {
+                    if (oldWindow != null && newWindow == null) {
+                        meetingActive = false;
+                        clearToasts();
+                    }
+                });
+            } else {
+                meetingActive = false;
+                clearToasts();
+            }
+        });
+    }
+
+    private void showToast(String message) {
+        if (!meetingActive) {
+            return;
+        }
+        toastQueue.addLast(message);
+        if (toastAnimation == null) {
+            showNextToast();
+        }
+    }
+
+    private void showNextToast() {
+        if (toastQueue.isEmpty()) {
+            toastLabel.setVisible(false);
+            return;
+        }
+        toastLabel.setText(toastQueue.removeFirst());
+        toastLabel.setOpacity(0);
+        toastLabel.setVisible(true);
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(180), toastLabel);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+        PauseTransition hold = new PauseTransition(Duration.millis(2640));
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(180), toastLabel);
+        fadeOut.setFromValue(1);
+        fadeOut.setToValue(0);
+        toastAnimation = new SequentialTransition(fadeIn, hold, fadeOut);
+        toastAnimation.setOnFinished(event -> {
+            toastAnimation = null;
+            showNextToast();
+        });
+        toastAnimation.play();
+    }
+
+    private void clearToasts() {
+        toastQueue.clear();
+        if (toastAnimation != null) {
+            toastAnimation.stop();
+            toastAnimation = null;
+        }
+        toastLabel.setVisible(false);
+        toastLabel.setText("");
+    }
 
     @FXML
     private Label roomIdLabel;
@@ -56,6 +135,7 @@ public class MeetingController {
         this.tcpClient = tcpClient;
         this.username = username;
         this.roomId = roomId;
+        meetingActive = true;
 
         roomIdLabel.setText(
                 "Room ID: " + roomId
@@ -106,9 +186,12 @@ public class MeetingController {
                                 "USER_JOINED|".length()
                         );
 
-                participants.add(user);
+                boolean added = participants.add(user);
 
                 renderParticipants();
+                if (added) {
+                    showToast(user + " đã tham gia phòng.");
+                }
 
             } else if (
                     message.startsWith("USER_LEFT|")
@@ -119,9 +202,12 @@ public class MeetingController {
                                 "USER_LEFT|".length()
                         );
 
-                participants.remove(user);
+                boolean removed = participants.remove(user);
 
                 renderParticipants();
+                if (removed) {
+                    showToast(user + " đã rời phòng.");
+                }
             } else if (message.startsWith("CHAT|")) {
 
                 handleChatEvent(message);

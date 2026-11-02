@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<ScrollPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.example.onlinemeeting.controller.RegisterController"
+            fitToWidth="true" fitToHeight="true" hbarPolicy="NEVER"
+            style="-fx-background: #1e1e2e; -fx-background-color: #1e1e2e; -fx-font-family: 'Segoe UI'; -fx-font-size: 14px;">
+    <content>
+        <StackPane style="-fx-background-color: #1e1e2e;">
+            <padding>
+                <Insets top="24" right="24" bottom="24" left="24"/>
+            </padding>
+            <VBox alignment="CENTER_LEFT" maxWidth="460" maxHeight="-Infinity" spacing="8"
+                  style="-fx-background-color: #181825; -fx-background-radius: 20; -fx-border-color: #313244; -fx-border-radius: 20;">
+                <padding>
+                    <Insets top="24" right="32" bottom="24" left="32"/>
+                </padding>
+                <Label text="ONLINE MEETING"
+                       style="-fx-text-fill: #cba6f7; -fx-font-size: 12px; -fx-font-weight: bold;"/>
+                <Label text="Tạo tài khoản" wrapText="true"
+                       style="-fx-text-fill: #cdd6f4; -fx-font-size: 28px; -fx-font-weight: bold;"/>
+                <Label text="Kết nối và bắt đầu cuộc họp của bạn." wrapText="true"
+                       style="-fx-text-fill: #a6adc8; -fx-padding: 0 0 8 0;"/>
+                <Label text="Tên đăng nhập" style="-fx-text-fill: #bac2de;"/>
+                <TextField fx:id="usernameField" promptText="3–50 ký tự" accessibleText="Tên đăng nhập"
+                    prefHeight="42" onAction="#handleRegister" style="-fx-background-color: #313244; -fx-background-radius: 8; -fx-text-fill: #cdd6f4; -fx-prompt-text-fill: #a6adc8; -fx-highlight-fill: #585b70; -fx-padding: 10 12;"/>
+                <Label text="Email" style="-fx-text-fill: #bac2de;"/>
+                <TextField fx:id="emailField" promptText="ban@example.com" accessibleText="Email"
+                    prefHeight="42" onAction="#handleRegister" style="-fx-background-color: #313244; -fx-background-radius: 8; -fx-text-fill: #cdd6f4; -fx-prompt-text-fill: #a6adc8; -fx-highlight-fill: #585b70; -fx-padding: 10 12;"/>
+                <Label text="Tên hiển thị" style="-fx-text-fill: #bac2de;"/>
+                <TextField fx:id="displayNameField" promptText="Tên của bạn trong cuộc họp" accessibleText="Tên hiển thị"
+                    prefHeight="42" onAction="#handleRegister" style="-fx-background-color: #313244; -fx-background-radius: 8; -fx-text-fill: #cdd6f4; -fx-prompt-text-fill: #a6adc8; -fx-highlight-fill: #585b70; -fx-padding: 10 12;"/>
+                <Label text="Mật khẩu" style="-fx-text-fill: #bac2de;"/>
+                <PasswordField fx:id="passwordField" promptText="8–72 byte UTF-8" accessibleText="Mật khẩu"
+                    prefHeight="42" onAction="#handleRegister" style="-fx-background-color: #313244; -fx-background-radius: 8; -fx-text-fill: #cdd6f4; -fx-prompt-text-fill: #a6adc8; -fx-highlight-fill: #585b70; -fx-padding: 10 12;"/>
+                <Label text="Xác nhận mật khẩu" style="-fx-text-fill: #bac2de;"/>
+                <PasswordField fx:id="confirmPasswordField" promptText="Nhập lại mật khẩu" accessibleText="Xác nhận mật khẩu"
+                    prefHeight="42" onAction="#handleRegister" style="-fx-background-color: #313244; -fx-background-radius: 8; -fx-text-fill: #cdd6f4; -fx-prompt-text-fill: #a6adc8; -fx-highlight-fill: #585b70; -fx-padding: 10 12;"/>
+                <Button fx:id="registerButton" text="Tạo tài khoản" defaultButton="true"
+                        prefHeight="44" maxWidth="Infinity" onAction="#handleRegister"
+                        style="-fx-background-color: #cba6f7; -fx-text-fill: #11111b; -fx-background-radius: 8; -fx-font-weight: bold; -fx-cursor: hand;"/>
+                <Button fx:id="backButton" text="Quay lại đăng nhập / Back to Login"
+                        maxWidth="Infinity" onAction="#handleBackToLogin"
+                        style="-fx-background-color: transparent; -fx-text-fill: #89b4fa; -fx-cursor: hand; -fx-padding: 6;"/>
+                <Label fx:id="statusLabel" text="" wrapText="true" minHeight="40"
+                       maxWidth="Infinity" style="-fx-text-fill: #f38ba8;"/>
+            </VBox>
+        </StackPane>
+    </content>
+</ScrollPane>
