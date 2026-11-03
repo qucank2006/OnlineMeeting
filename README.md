@@ -1,463 +1,259 @@
+<div align="center">
+
 # 🎥 OnlineMeeting
 
-OnlineMeeting là ứng dụng họp trực tuyến được xây dựng bằng **JavaFX** và lập trình mạng **TCP/UDP Socket**.
+### Ứng dụng họp trực tuyến với JavaFX & TCP/UDP Socket
 
-Ứng dụng cho phép nhiều người dùng tham gia cùng một phòng họp, giao tiếp bằng âm thanh thời gian thực, theo dõi danh sách thành viên và nhắn tin trong phòng.
+**Java 21 · JavaFX 21 · TCP/UDP · MySQL · Maven**
 
-> 📚 Project được xây dựng nhằm thực hành **Lập trình mạng với Java**, tập trung vào TCP Socket, UDP Socket, xử lý đa luồng và giao tiếp Client–Server.
+[![Java](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white)](https://openjdk.org/)
+[![JavaFX](https://img.shields.io/badge/JavaFX-21-4285F4)](https://openjfx.io/)
+[![Maven](https://img.shields.io/badge/Maven-Build-C71A36?logo=apachemaven&logoColor=white)](https://maven.apache.org/)
+[![MySQL](https://img.shields.io/badge/MySQL-Database-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
 
----
+**[Source code](https://github.com/qucank2006/OnlineMeeting)** · **[Báo lỗi / Đề xuất](https://github.com/qucank2006/OnlineMeeting/issues)**
 
-## ✨ Chức năng
-
-### 👤 Người dùng
-- Đăng nhập bằng tên người dùng.
-- Duy trì kết nối trong suốt phiên sử dụng.
-
-### 🏠 Phòng họp
-- Tạo phòng họp mới.
-- Tự động sinh Room ID.
-- Tham gia phòng bằng Room ID.
-- Rời phòng và quay lại màn hình chính.
-
-### 👥 Thành viên
-- Hiển thị danh sách người tham gia phòng.
-- Cập nhật thành viên theo thời gian thực.
-- Hiển thị người vừa tham gia.
-- Xóa người dùng khỏi giao diện khi họ rời phòng.
-
-### 🎤 Audio
-- Truyền âm thanh thời gian thực.
-- Bật / tắt microphone.
-- Âm thanh chỉ được truyền giữa các thành viên trong cùng phòng.
-- Sử dụng UDP để giảm độ trễ khi truyền audio.
-
-### 💬 Chat
-- Chat toàn phòng.
-- Chat riêng giữa hai thành viên.
-- Chuyển đổi giữa chat "Mọi người" và chat riêng.
-- Tách lịch sử chat của từng cuộc trò chuyện trong phiên hiện tại.
-
-### 📹 Video
-- Camera / Video Call: **đang phát triển**.
+</div>
 
 ---
 
-## 🛠 Công nghệ sử dụng
+## 📖 Giới thiệu
 
-| Công nghệ | Mục đích |
-|---|---|
-| Java 21 | Ngôn ngữ lập trình chính |
-| JavaFX 21 | Xây dựng giao diện |
-| Maven | Quản lý project và dependency |
-| TCP Socket | Login, quản lý phòng, thành viên và chat |
-| UDP Socket | Truyền âm thanh thời gian thực |
-| Java Sound API | Thu âm microphone và phát audio |
-| Java Thread | Xử lý nhiều client và dữ liệu realtime |
-| JPMS | Quản lý Java Module |
+**OnlineMeeting** là ứng dụng desktop mô phỏng hệ thống họp trực tuyến theo kiến trúc **Client–Server**, được phát triển để thực hành lập trình mạng Java. Dự án kết hợp TCP Socket để xử lý tài khoản, quản lý phòng và tin nhắn, cùng UDP Socket để truyền âm thanh theo thời gian thực.
 
----
+Ứng dụng được tổ chức thành các thành phần giao diện JavaFX, logic client/server, quản lý phòng và truy cập MySQL. Mục tiêu là hiểu rõ luồng giao tiếp mạng, xử lý nhiều kết nối và quản lý trạng thái của một cuộc họp.
 
-## 🏗 Kiến trúc hệ thống
+> **Phạm vi phiên bản trên nhánh `main`:** Có đăng ký/đăng nhập, tạo/tham gia/rời phòng, hiển thị thành viên, chat toàn phòng và microphone qua UDP. **Chưa có truyền hình ảnh camera** trong mã nguồn hiện được đưa lên GitHub. README này mô tả phiên bản trong repository, không khẳng định các thay đổi chưa push.
 
-OnlineMeeting sử dụng mô hình **Client – Server**.
+## ✨ Tính năng
 
-```text
-                         OnlineMeeting Server
-                    ┌─────────────────────────┐
-                    │                         │
-                TCP :5000                UDP :6000
-                    │                         │
-                    │                         │
-          Control / Signaling               Audio
-                    │                         │
-        ┌───────────┼───────────┐             │
-        │           │           │             │
-      Login       Rooms       Chat         Voice
-                    │
-              Participants
-                    │
-        ┌───────────┴───────────┐
-        │                       │
-     Client A                Client B
+| Nhóm | Chức năng | Trạng thái |
+|---|---|---|
+| Tài khoản | Đăng ký với username, email, tên hiển thị và mật khẩu | ✅ Đã có |
+| Xác thực | Đăng nhập bằng username hoặc email; xác thực phía server | ✅ Đã có |
+| Mật khẩu | Lưu mật khẩu dạng hash bằng BCrypt | ✅ Đã có |
+| Phòng họp | Tạo phòng với mã 6 ký tự, tham gia bằng Room ID, rời phòng | ✅ Đã có |
+| Thành viên | Cập nhật danh sách, thông báo tham gia/rời phòng | ✅ Đã có |
+| Chat | Nhắn tin chung trong phòng qua TCP | ✅ Đã có |
+| Audio | Thu/phát PCM và chuyển tiếp âm thanh qua UDP | ✅ Đã có |
+| Microphone | Bật/tắt micro trong cuộc họp | ✅ Đã có |
+| Camera | Truyền video thời gian thực | 🚧 Chưa có trên `main` |
+| Chia sẻ màn hình | Screen sharing | 📌 Dự kiến |
+
+## 🧰 Công nghệ
+
+| Thành phần | Công nghệ | Vai trò |
+|---|---|---|
+| Ngôn ngữ | Java 21 | Client và server |
+| Giao diện | JavaFX 21.0.6, FXML | Ứng dụng desktop |
+| Quản lý phụ thuộc | Maven, Maven Wrapper | Build và chạy ứng dụng |
+| Kênh điều khiển | Java TCP Socket | Đăng ký, đăng nhập, phòng và chat |
+| Truyền âm thanh | Java UDP Socket, Java Sound API | Audio PCM realtime |
+| Cơ sở dữ liệu | MySQL, Connector/J 9.5.0 | Lưu tài khoản |
+| Bảo vệ mật khẩu | jBCrypt 0.4 | Băm và xác thực mật khẩu |
+| Xử lý đồng thời | Java Threads | Phục vụ client và audio |
+
+## 🏗 Kiến trúc
+
+```mermaid
+flowchart TB
+    A[JavaFX Client A] -->|TCP :5000| S[MeetingServer]
+    B[JavaFX Client B] -->|TCP :5000| S
+    A <-->|UDP :6000| U[AudioServer]
+    B <-->|UDP :6000| U
+    S --> H[ClientHandler]
+    H --> R[RoomManager]
+    H --> AU[AuthService]
+    AU --> DAO[UserDAO]
+    DAO --> DB[(MySQL)]
 ```
 
-### TCP - Port 5000
+- **TCP / port 5000:** gửi yêu cầu và phản hồi đăng ký, đăng nhập, tạo/tham gia/rời phòng; nhận cập nhật thành viên và tin nhắn.
+- **UDP / port 6000:** gửi các gói audio từ client đến server, sau đó server chuyển tiếp đến các địa chỉ UDP đã ghi nhận trong cùng phòng.
+- **MySQL:** lưu tài khoản người dùng; phòng họp và lịch sử chat của phiên hiện tại chưa được lưu bền vững.
 
-TCP được sử dụng cho các dữ liệu cần đảm bảo độ tin cậy:
-
-```text
-Login
-Create Room
-Join Room
-Leave Room
-Participants
-Room Chat
-Private Chat
-```
-
-### UDP - Port 6000
-
-UDP được sử dụng để truyền:
-
-```text
-Microphone Audio
-```
-
-Audio được gửi qua server và relay tới những client khác trong cùng phòng.
-
----
-
-## 📁 Cấu trúc project
+## 📂 Cấu trúc dự án
 
 ```text
 OnlineMeeting/
-│
+├── .mvn/wrapper/                   # Maven Wrapper
+├── mvnw                         # Linux/macOS
+├── mvnw.cmd                     # Windows
 ├── pom.xml
-│
-└── src/
-    └── main/
-        │
-        ├── java/
-        │   ├── module-info.java
-        │   │
-        │   └── com/example/onlinemeeting/
-        │       │
-        │       ├── client/
-        │       │   ├── OnlineMeetingApplication.java
-        │       │   ├── TCPClient.java
-        │       │   └── AudioClient.java
-        │       │
-        │       ├── controller/
-        │       │   ├── LoginController.java
-        │       │   ├── HomeController.java
-        │       │   └── MeetingController.java
-        │       │
-        │       ├── model/
-        │       │   ├── Room.java
-        │       │   └── ChatMessage.java
-        │       │
-        │       ├── server/
-        │       │   ├── MeetingServer.java
-        │       │   ├── ClientHandler.java
-        │       │   ├── RoomManager.java
-        │       │   └── AudioServer.java
-        │       │
-        │       └── test/
-        │           ├── TCPTestClient.java
-        │           ├── TCPTestClient2.java
-        │           └── AudioTestClient.java
-        │
-        └── resources/
-            └── com/example/onlinemeeting/
-                ├── fxml/
-                │   ├── login-view.fxml
-                │   ├── home-view.fxml
-                │   └── meeting-view.fxml
-                │
-                ├── css/
-                └── images/
+└── src/main/
+    ├── java/
+    │   ├── module-info.java
+    │   └── com/example/onlinemeeting/
+    │       ├── client/            # JavaFX entry point, TCPClient, AudioClient
+    │       ├── controller/        # Login, Register, Home, Meeting
+    │       ├── database/          # DatabaseConnection, UserDAO
+    │       ├── model/             # User, Room
+    │       ├── server/            # MeetingServer, ClientHandler, RoomManager, AudioServer
+    │       ├── service/           # AuthService
+    │       └── test/              # Các lớp kiểm tra thủ công
+    └── resources/com/example/onlinemeeting/fxml/
+        ├── login-view.fxml
+        ├── register-view.fxml
+        ├── home-view.fxml
+        └── meeting-view.fxml
 ```
 
----
+## 🚀 Cài đặt & chạy
 
-## 🚀 Cách chạy
+### 1. Yêu cầu
 
-### Yêu cầu
+- **JDK 21** (kiểm tra bằng `java -version`).
+- **MySQL Server** đang hoạt động.
+- **Git** để clone repository.
+- **IntelliJ IDEA** (khuyến nghị) hoặc terminal có thể chạy Maven Wrapper.
+- Microphone, loa/tai nghe để thử audio.
 
-Đảm bảo máy đã cài đặt:
-
-- JDK 21
-- Maven
-- IntelliJ IDEA hoặc IDE hỗ trợ JavaFX
-- Microphone và loa/tai nghe
-
-Kiểm tra Java:
+### 2. Lấy mã nguồn
 
 ```bash
-java --version
+git clone https://github.com/qucank2006/OnlineMeeting.git
+cd OnlineMeeting
 ```
 
-Kiểm tra Maven:
+### 3. Chuẩn bị database
+
+Mã nguồn hiện tại truy vấn bảng `users` với các cột `id`, `username`, `email`, `password_hash`, `display_name`, `created_at`, `updated_at`. Repository **chưa cung cấp file migration/schema SQL**, vì vậy có thể tạo database và bảng tương ứng như sau (schema mẫu tương thích với các câu SQL trong `UserDAO`):
+
+```sql
+CREATE DATABASE IF NOT EXISTS online_meeting
+    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+USE online_meeting;
+
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    display_name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+Tạo file **`src/main/resources/database.properties`** trên máy của bạn:
+
+```properties
+db.host=localhost
+db.port=3306
+db.name=online_meeting
+db.username=root
+db.password=YOUR_MYSQL_PASSWORD
+```
+
+> ⚠️ `database.properties` chứa thông tin truy cập database. **Không commit mật khẩu lên GitHub.** Nên thêm file này vào `.gitignore` nếu chưa được bỏ qua. Đây là file cấu hình cần tạo riêng vì không có trong nhánh `main` đang được kiểm tra.
+
+### 4. Khởi động server
+
+Mở project bằng IntelliJ IDEA, chọn JDK 21 và chạy hàm `main()` trong:
+
+```text
+src/main/java/com/example/onlinemeeting/server/MeetingServer.java
+```
+
+Server mở hai cổng:
+
+| Giao thức | Port | Công dụng |
+|---|---:|---|
+| TCP | `5000` | Tài khoản, phòng, chat |
+| UDP | `6000` | Audio |
+
+### 5. Khởi động client
+
+Chạy JavaFX application bằng Maven Wrapper:
+
+**Windows (PowerShell):**
+
+```powershell
+.\mvnw.cmd javafx:run
+```
+
+**Linux/macOS:**
 
 ```bash
-mvn --version
+./mvnw javafx:run
 ```
 
----
+Hoặc chạy cấu hình JavaFX Maven tương ứng trong IntelliJ. Main class của client là `com.example.onlinemeeting.client.OnlineMeetingApplication`.
 
-## 💻 Chạy trên một máy
+> Trong source hiện tại, `LoginController`, `RegisterController` và `MeetingController` dùng địa chỉ server **`localhost`**. Cấu hình mặc định phù hợp để chạy server và client **trên cùng một máy**.
 
-### 1. Khởi động Server
+## 🧪 Demo nhanh
 
-Chạy:
+1. Chạy MySQL, tiếp theo chạy `MeetingServer`.
+2. Mở client, **đăng ký** tài khoản rồi **đăng nhập**.
+3. Chọn **Tạo phòng**, lấy mã Room ID.
+4. Mở một client khác, đăng nhập bằng tài khoản thứ hai và **Tham gia phòng** bằng mã vừa tạo.
+5. Thử nhắn tin, xem thành viên vào/ra, bật/tắt microphone và rời phòng.
+
+**Demo trên hai máy trong LAN:** kết nối hai thiết bị vào cùng mạng, xác định địa chỉ IPv4 máy server bằng `ipconfig` (Windows) hoặc `ip addr` (Linux), thay các địa chỉ `localhost` cố định trong source client bằng IP server, sau đó cho phép **TCP 5000** và **UDP 6000** qua firewall. Nếu dùng MySQL trên máy server, client không cần kết nối MySQL trực tiếp; server thực hiện truy cập database.
+
+## 📡 Giao thức ứng dụng (tóm tắt)
+
+Các message điều khiển được gửi trên một kết nối TCP. Dấu `|` được sử dụng để phân tách trường dữ liệu.
 
 ```text
-MeetingServer.java
-```
-
-Server sẽ mở:
-
-```text
-TCP Server  : 5000
-Audio Server: 6000
-```
-
-### 2. Khởi động Client
-
-Chạy:
-
-```text
-OnlineMeetingApplication.java
-```
-
-Có thể chạy nhiều instance Client để kiểm tra nhiều người dùng trên cùng một máy.
-
-Khi chạy local, địa chỉ server có thể sử dụng:
-
-```java
-localhost
-```
-
-hoặc:
-
-```java
-127.0.0.1
-```
-
----
-
-## 🌐 Chạy trên hai máy cùng Wi-Fi/LAN
-
-Ví dụ:
-
-```text
-Laptop A
-IP: 192.168.1.10
-├── MeetingServer
-└── OnlineMeeting Client
-
-            Wi-Fi / LAN
-                 ↕
-Laptop B
-└── OnlineMeeting Client
-```
-
-### Bước 1: Lấy IP của máy Server
-
-Trên Windows:
-
-```bash
-ipconfig
-```
-
-Tìm:
-
-```text
-IPv4 Address
-```
-
-Ví dụ:
-
-```text
-192.168.1.10
-```
-
-### Bước 2: Cấu hình Client
-
-Thay địa chỉ:
-
-```java
-localhost
-```
-
-bằng IP máy Server:
-
-```java
-192.168.1.10
-```
-
-TCP:
-
-```java
-client.connect("192.168.1.10", 5000);
-```
-
-Audio:
-
-```java
-new AudioClient("192.168.1.10", roomId);
-```
-
-### Bước 3: Kiểm tra Firewall
-
-Máy chạy Server cần cho phép kết nối:
-
-```text
-TCP 5000
-UDP 6000
-```
-
-Nếu Windows Firewall hỏi quyền truy cập Java, cần cho phép ứng dụng hoạt động trên mạng đang sử dụng.
-
-### Bước 4: Test
-
-Laptop A:
-
-```text
-Username: Qanh
-→ Tạo phòng
-→ Room ID: ABC123
-```
-
-Laptop B:
-
-```text
-Username: MVy
-→ Join Room
-→ ABC123
-```
-
-Hai máy sau đó có thể kiểm tra:
-
-```text
-✓ Hiển thị thành viên realtime
-✓ Audio realtime
-✓ Mute / Unmute
-✓ Chat toàn phòng
-✓ Chat riêng
-✓ Join / Leave Room
-```
-
----
-
-## 📡 TCP Protocol
-
-Một số message được sử dụng giữa Client và Server:
-
-```text
-LOGIN|username
-
+REGISTER|base64(username)|base64(email)|base64(password)|base64(displayName)
+LOGIN|base64(identifier)|base64(password)
 CREATE_ROOM
-JOIN_ROOM|roomId
+JOIN_ROOM|ROOM_ID
 LEAVE_ROOM
+CHAT|message
 
+REGISTER_SUCCESS
+LOGIN_SUCCESS|userId|username|base64(displayName)
+ROOM_CREATED|ROOM_ID
+JOIN_SUCCESS|ROOM_ID
 MEMBERS|user1,user2
 USER_JOINED|username
 USER_LEFT|username
-
-CHAT_ROOM|message
-CHAT_ROOM|sender|message
-
-CHAT_PRIVATE|receiver|message
-CHAT_PRIVATE|sender|receiver|message
+CHAT|sender|message
 ```
 
----
+Trong phần audio, mỗi UDP datagram từ client chứa **1 byte độ dài Room ID**, tiếp theo là **Room ID (UTF-8)** và dữ liệu **PCM audio**. Định dạng audio: **16 kHz, 16-bit, mono, signed PCM, little-endian**.
 
-## 🎤 Audio Protocol
+> Base64 chỉ là **mã hóa biểu diễn dữ liệu**, không phải mã hóa bảo mật. Kết nối TCP/UDP hiện tại chưa tích hợp TLS hoặc cơ chế mã hóa đầu cuối.
 
-Audio sử dụng UDP.
+## ⚠️ Giới hạn đã biết
 
-Packet cơ bản:
+- Code trên `main` chưa có camera/video streaming hay screen sharing.
+- Chat mới chỉ hoạt động trong phiên; chưa có chức năng lưu và tải lại lịch sử tin nhắn.
+- Room ID và trạng thái phòng được giữ trong bộ nhớ server, không được lưu xuống MySQL.
+- Chưa có cơ chế mã hóa đường truyền/kiểm soát truy cập ở mức phù hợp để triển khai trên Internet công cộng.
+- Client đang dùng `localhost` cố định; muốn demo liên máy cần đổi cấu hình địa chỉ server.
+- Chưa được thiết kế và kiểm chứng cho tải lớn hay môi trường production.
 
-```text
-┌──────────────┬──────────────┬───────────────────┐
-│ Room ID Size │   Room ID    │     PCM Audio     │
-└──────────────┴──────────────┴───────────────────┘
-```
+## 🗺️ Hướng phát triển
 
-Audio format hiện tại:
-
-```text
-Sample Rate : 16000 Hz
-Sample Size : 16 bit
-Channels    : Mono
-Encoding    : PCM
-```
-
-Server nhận packet và relay audio tới các client khác thuộc cùng Room ID.
-
----
-
-## 🔄 Luồng hoạt động
-
-```text
-Login
-  │
-  ▼
-Home
-  │
-  ├──── Create Room ────┐
-  │                     │
-  └──── Join Room ──────┤
-                        ▼
-                     Meeting
-                        │
-          ┌─────────────┼─────────────┐
-          │             │             │
-          ▼             ▼             ▼
-        Audio       Participants     Chat
-          │                           │
-      UDP :6000                 TCP :5000
-                        │
-                        ▼
-                    Leave Room
-                        │
-                        ▼
-                       Home
-```
-
----
-
-## ⚠️ Hạn chế hiện tại
-
-Phiên bản hiện tại vẫn đang trong quá trình phát triển:
-
-- Chưa hỗ trợ Video Call / Camera.
-- Chat hiện chỉ lưu trong phiên đang chạy.
-- Chưa có database lưu tài khoản, phòng hoặc tin nhắn.
-- Chưa có xác thực tài khoản bằng mật khẩu.
-- UDP audio chưa có cơ chế mã hóa.
-- Chưa triển khai cơ chế bảo mật cho Room ID.
-- Chưa tối ưu cho số lượng lớn người tham gia.
-- Chưa triển khai server public để sử dụng qua Internet.
-
----
-
-## 🔮 Hướng phát triển
-
-Các chức năng dự kiến:
-
-- [x] Login
-- [x] Create Room
-- [x] Join Room
-- [x] Leave Room
-- [x] Realtime Participants
-- [x] UDP Audio
-- [x] Mute / Unmute
-- [x] Room Chat
-- [x] Private Chat
-- [ ] Camera / Video Call
-- [ ] Bật / tắt Camera
-- [ ] Screen Sharing
-- [ ] Authentication
-- [ ] Database
-- [ ] Host / Moderator
-- [ ] Kick thành viên
-- [ ] Mã hóa dữ liệu
-- [ ] Deploy Server lên Internet
-
----
+- [x] Đăng ký, đăng nhập bằng tài khoản MySQL
+- [x] BCrypt password hashing
+- [x] Tạo, tham gia, rời phòng họp
+- [x] Danh sách thành viên và chat toàn phòng
+- [x] Truyền âm thanh UDP và bật/tắt microphone
+- [ ] Camera / video streaming
+- [ ] Chia sẻ màn hình
+- [ ] Chọn thiết bị audio/video
+- [ ] Cấu hình server host/port từ giao diện hoặc file cấu hình
+- [ ] Lưu lịch sử chat
+- [ ] Cải thiện bảo mật phiên họp và mã hóa đường truyền
+- [ ] Kiểm thử tải và xử lý ngắt kết nối nâng cao
 
 ## 👨‍💻 Tác giả
 
-**Trần Lê Quốc Anh**
+**Trần Lê Quốc Anh** · Sinh viên Trường Đại học Công nghệ Thông tin và Truyền thông Việt – Hàn (VKU)
 
-Sinh viên Trường Đại học Công nghệ Thông tin và Truyền thông Việt – Hàn.
+GitHub: [@qucank2006](https://github.com/qucank2006)
 
 ---
 
-## 📝 Ghi chú
+<div align="center">
 
-Project được xây dựng phục vụ mục đích **học tập và nghiên cứu lập trình mạng**, tập trung vào việc áp dụng TCP/UDP Socket, Client–Server, Multithreading và JavaFX vào một ứng dụng thực tế.
+*Dự án phục vụ mục đích học tập, nghiên cứu và thực hành môn Lập trình mạng.*
+
+</div>
