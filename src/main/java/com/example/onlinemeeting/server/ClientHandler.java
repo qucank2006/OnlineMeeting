@@ -1,5 +1,6 @@
 package com.example.onlinemeeting.server;
 
+import com.example.onlinemeeting.config.AppConfig;
 import com.example.onlinemeeting.model.Room;
 import com.example.onlinemeeting.service.AuthService;
 import com.example.onlinemeeting.service.AuthService.AuthResult;
@@ -15,11 +16,17 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class ClientHandler implements Runnable {
 
     private final Socket socket;
+    // The same registry instance is shared with AudioServer.
+    private final AudioSessionManager audioSessionManager;
+    private final VideoSessionManager videoSessionManager;
 
     private BufferedReader reader;
     private PrintWriter writer;
@@ -31,9 +38,24 @@ public class ClientHandler implements Runnable {
     }
     private String currentRoomId;
 
-    public ClientHandler(Socket socket) {
-        this.socket = socket;
+    public ClientHandler(Socket socket, AudioSessionManager audioSessionManager) {
+        this(socket, audioSessionManager, null);
     }
+
+    public ClientHandler(Socket socket, AudioSessionManager audioSessionManager,
+                         VideoSessionManager videoSessionManager) {
+        this.videoSessionManager = videoSessionManager;
+        this.socket = socket;
+        this.audioSessionManager = Objects.requireNonNull(
+                audioSessionManager, "Audio session manager is required");
+    }
+
+    // Immutable dependency access; deliberately does not acquire this handler's monitor.
+    AudioSessionManager audioSessionManager() {
+        return audioSessionManager;
+    }
+
+    VideoSessionManager videoSessionManager() { return videoSessionManager; }
 
     @Override
     public void run() {
@@ -63,18 +85,29 @@ public class ClientHandler implements Runnable {
 
         } finally {
 
-            leaveCurrentRoom();
-
             try {
-                socket.close();
-            } catch (IOException ignored) {
+                leaveCurrentRoom();
+            } finally {
+                // Also revoke sessions when currentRoomId was already cleared.
+                RoomManager.revokeAudioSessions(this);
+                try {
+                    socket.close();
+                } catch (IOException ignored) {
+                }
             }
         }
     }
 
     private void handleMessage(String message) {
 
-        if (message.equals("REGISTER") || message.startsWith("REGISTER|")) {
+        if (message.equals("VIDEO_SESSION_REQUEST") || message.startsWith("VIDEO_SESSION_REQUEST|")) {
+            handleVideoSessionRequest(message);
+        } else if (message.equals("AUDIO_SESSION_REQUEST")
+                || message.startsWith("AUDIO_SESSION_REQUEST|")) {
+
+            handleAudioSessionRequest(message);
+
+        } else if (message.equals("REGISTER") || message.startsWith("REGISTER|")) {
 
             handleRegister(message);
 
@@ -97,6 +130,88 @@ public class ClientHandler implements Runnable {
 
             handleChat(message);
         }
+    }
+
+    private void handleVideoSessionRequest(String message) {
+        String[] fields = message.split("\\|", -1);
+        String id = fields.length > 1 ? fields[1] : "";
+        boolean valid = id.matches("[A-Za-z0-9_-]{1,64}");
+        if (fields.length != 2 || !valid) {
+            send("VIDEO_SESSION_FAILED|" + (valid ? id : "") + "|INVALID_REQUEST");
+            return;
+        }
+        AuthenticatedUser user = authenticatedUser;
+        if (user == null) { send("VIDEO_SESSION_FAILED|" + id + "|NOT_LOGGED_IN"); return; }
+        String room = currentRoomId;
+        if (room == null) { send("VIDEO_SESSION_FAILED|" + id + "|NOT_IN_ROOM"); return; }
+        String response;
+        try {
+            if (videoSessionManager == null) throw new IllegalStateException("Video unavailable");
+            response = RoomManager.withMember(room, this, () -> {
+                VideoSessionManager.Session session = videoSessionManager.create(this, user.id(), room, user.username());
+                byte[] token = videoSessionManager.token(session);
+                try {
+                    return "VIDEO_SESSION|" + id + "|" + session.id + "|" + room + "|"
+                            + Base64.getUrlEncoder().withoutPadding().encodeToString(token) + "|"
+                            + session.expiresAt + "|" + AppConfig.getInstance().getVideoPort();
+                } finally { Arrays.fill(token, (byte) 0); }
+            }).orElse("VIDEO_SESSION_FAILED|" + id + "|NOT_IN_ROOM");
+        } catch (RuntimeException e) { response = "VIDEO_SESSION_FAILED|" + id + "|INTERNAL_ERROR"; }
+        send(response);
+    }
+
+    private void handleAudioSessionRequest(String message) {
+        String[] fields = message.split("\\|", 3);
+        String requestId = fields.length > 1 ? fields[1] : "";
+        boolean validId = !requestId.isBlank() && requestId.length() <= 64
+                && requestId.indexOf('|') < 0 && requestId.indexOf('\r') < 0
+                && requestId.indexOf('\n') < 0 && requestId.indexOf('\0') < 0;
+        if (fields.length != 2 || !validId) {
+            // An invalid correlation field is represented by an empty field,
+            // never reflected verbatim into the line-based protocol.
+            send("AUDIO_SESSION_FAILED|" + (validId ? requestId : "") + "|INVALID_REQUEST");
+            return;
+        }
+
+        AuthenticatedUser user = authenticatedUser;
+        if (user == null) {
+            send("AUDIO_SESSION_FAILED|" + requestId + "|NOT_LOGGED_IN");
+            return;
+        }
+        String roomId = currentRoomId;
+        if (roomId == null) {
+            send("AUDIO_SESSION_FAILED|" + requestId + "|NOT_IN_ROOM");
+            return;
+        }
+
+        String response;
+        try {
+            Optional<String> issued = RoomManager.withMember(roomId, this, () -> {
+                AudioSession session = audioSessionManager.createSession(this, user.id(), roomId);
+                try {
+                    byte[] token = session.getToken();
+                    try {
+                        // expiresAt is Unix epoch milliseconds. This is one line.
+                        return "AUDIO_SESSION|" + requestId + "|" + session.getSessionId()
+                                + "|" + session.getRoomId() + "|"
+                                + Base64.getUrlEncoder().withoutPadding().encodeToString(token)
+                                + "|" + session.getExpiresAt().toEpochMilli()
+                                + "|" + AppConfig.getInstance().getUdpPort();
+                    } finally {
+                        Arrays.fill(token, (byte) 0);
+                    }
+                } catch (RuntimeException e) {
+                    audioSessionManager.revokeSession(session.getSessionId());
+                    throw e;
+                }
+            });
+            response = issued.orElse("AUDIO_SESSION_FAILED|" + requestId + "|NOT_IN_ROOM");
+        } catch (RuntimeException e) {
+            // Never include credentials or exception details in logs/responses.
+            response = "AUDIO_SESSION_FAILED|" + requestId + "|INTERNAL_ERROR";
+        }
+        // withMember has released the membership lock before any network write.
+        send(response);
     }
 
     private void handleChat(String message) {
@@ -353,6 +468,7 @@ public class ClientHandler implements Runnable {
     private void leaveCurrentRoom() {
 
         if (currentRoomId == null) {
+            RoomManager.revokeAudioSessions(this);
             return;
         }
 

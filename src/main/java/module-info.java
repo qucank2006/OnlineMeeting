@@ -4,6 +4,8 @@ module com.example.onlinemeeting {
     requires java.desktop;
     requires java.sql;
     requires jbcrypt;
+    requires webcam.capture;
+    requires io.github.eduramiba.webcamcapture;
 
 
     exports com.example.onlinemeeting.client;

@@ -6,6 +6,10 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.VBox;
+import java.util.Locale;
 import javafx.stage.Stage;
 
 public class HomeController {
@@ -19,6 +23,41 @@ public class HomeController {
     @FXML
     private Label errorLabel;
 
+    @FXML private Label accountLabel;
+    @FXML private Label accountAvatar;
+    @FXML private Label connectionLabel;
+    @FXML private GridPane homeActionGrid;
+    @FXML private VBox newMeetingCard;
+    @FXML private VBox joinMeetingCard;
+
+    @FXML
+    private void initialize() {
+        errorLabel.visibleProperty().bind(errorLabel.textProperty().isNotEmpty());
+        errorLabel.managedProperty().bind(errorLabel.visibleProperty());
+        homeActionGrid.widthProperty().addListener((observable, before, width) ->
+                arrangeActionCards(width.doubleValue()));
+        arrangeActionCards(0);
+    }
+
+    private void arrangeActionCards(double width) {
+        boolean stacked = width < 620;
+        int count = stacked ? 1 : 2;
+        if (homeActionGrid.getColumnConstraints().size() != count) {
+            homeActionGrid.getColumnConstraints().clear();
+            for (int i = 0; i < count; i++) {
+                ColumnConstraints column = new ColumnConstraints();
+                column.setPercentWidth(100.0 / count);
+                column.setMinWidth(0);
+                column.setHgrow(javafx.scene.layout.Priority.ALWAYS);
+                homeActionGrid.getColumnConstraints().add(column);
+            }
+        }
+        GridPane.setColumnIndex(newMeetingCard, 0);
+        GridPane.setRowIndex(newMeetingCard, 0);
+        GridPane.setColumnIndex(joinMeetingCard, stacked ? 0 : 1);
+        GridPane.setRowIndex(joinMeetingCard, stacked ? 1 : 0);
+    }
+
     private TCPClient client;
     private String username;
 
@@ -29,6 +68,17 @@ public class HomeController {
         client.clearEventListener();
 
         welcomeLabel.setText("Xin chào, " + username);
+        accountLabel.setText(username);
+        accountAvatar.setText(username.isEmpty() ? "U"
+                : username.substring(0, username.offsetByCodePoints(0, 1)).toUpperCase(Locale.ROOT));
+        try {
+            connectionLabel.setText("Đã kết nối · " + client.getConnectedServerAddress().getHostAddress());
+            connectionLabel.getStyleClass().remove("disconnected");
+        } catch (IllegalStateException e) {
+            connectionLabel.setText("Không có kết nối");
+            if (!connectionLabel.getStyleClass().contains("disconnected"))
+                connectionLabel.getStyleClass().add("disconnected");
+        }
     }
 
     @FXML
@@ -104,11 +154,16 @@ public class HomeController {
                             )
                     );
 
+            Stage stage =
+                    (Stage) welcomeLabel
+                            .getScene()
+                            .getWindow();
+
             Scene scene =
                     new Scene(
                             loader.load(),
-                            1000,
-                            650
+                            stage.getScene().getWidth(),
+                            stage.getScene().getHeight()
                     );
 
             MeetingController controller =
@@ -119,11 +174,6 @@ public class HomeController {
                     username,
                     roomId
             );
-
-            Stage stage =
-                    (Stage) welcomeLabel
-                            .getScene()
-                            .getWindow();
 
             stage.setScene(scene);
 

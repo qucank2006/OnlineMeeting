@@ -20,6 +20,7 @@ import java.util.Optional;
 public final class AudioSessionManager {
 
     public static final Duration DEFAULT_LIFETIME = Duration.ofMinutes(5);
+    public static final Duration ENDPOINT_IDLE_TIMEOUT = Duration.ofSeconds(15);
 
     private final SecureRandom random = new SecureRandom();
     private final Map<String, AudioSession> sessions = new HashMap<>();
@@ -111,8 +112,9 @@ public final class AudioSessionManager {
     }
 
     /**
-     * The transport must FIRST authenticate the registration packet and prove
-     * endpoint reachability with a challenge. A bearer token alone is insufficient.
+     * Basic bearer-session authorization only: the transport supplies the source
+     * address observed on the UDP packet, never an address claimed in its payload.
+     * This does not verify packet integrity or prove endpoint reachability.
      * Endpoint replacement is rejected; use a newly issued session for migration.
      */
     public synchronized boolean registerEndpoint(
@@ -126,8 +128,9 @@ public final class AudioSessionManager {
     }
 
     /**
-     * Call only after packet authentication and replay checks succeed.
-     * Supports audio or heartbeats while the microphone is muted.
+     * Records activity after validating the session token and registered source.
+     * Supports audio or heartbeats while the microphone is muted. This is basic
+     * bearer authorization, not cryptographic packet authentication.
      */
     public synchronized boolean recordAuthenticatedActivity(
             String sessionId, byte[] token, InetSocketAddress source) {
@@ -138,6 +141,78 @@ public final class AudioSessionManager {
         }
         session.recordActivity(now);
         return true;
+    }
+
+    /**
+     * Trusted server-side lookup. roomId must come from server-owned session
+     * state, never directly from a UDP client's claimed room.
+     *
+     * Returns an immutable snapshot of session IDs and registered endpoints,
+     * excluding the sender, expired/revoked sessions and idle endpoints.
+     * No tokens, owners or mutable AudioSession objects are exposed.
+     * A snapshot is not a continuing authorization lease: revocation can occur
+     * after this method returns. Perform network I/O outside this monitor.
+     */
+    public synchronized Map<String, InetSocketAddress> getActiveRegisteredEndpoints(
+            String roomId, String senderSessionId) {
+        Objects.requireNonNull(roomId, "Server-owned room ID is required");
+        Objects.requireNonNull(senderSessionId, "Sender session ID is required");
+        return recipientSnapshot(roomId, senderSessionId, Instant.now());
+    }
+
+    /**
+     * UDP-facing lookup: validates the sender's token, registered source and
+     * activity window, then derives the room from its stored AudioSession.
+     * Invalid senders receive an empty snapshot. This lookup does not itself
+     * refresh activity; call recordAuthenticatedActivity for accepted packets.
+     */
+    public synchronized Map<String, InetSocketAddress> getActiveRegisteredEndpoints(
+            String senderSessionId, byte[] token, InetSocketAddress source) {
+        Instant now = Instant.now();
+        AudioSession sender = validatedSession(senderSessionId, token, now);
+        if (sender == null || source == null || !source.equals(sender.getEndpoint())
+                || !endpointActive(sender, now)) {
+            return Map.of();
+        }
+        return recipientSnapshot(sender.getRoomId(), sender.getSessionId(), now);
+    }
+
+    /**
+     * Trusted server-side endpoint lookup with the same inactivity policy used
+     * by recipient selection. Session ID knowledge alone does not authorize UDP.
+     */
+    public synchronized Optional<InetSocketAddress> findActiveEndpoint(String sessionId) {
+        Instant now = Instant.now();
+        AudioSession session = activeSession(sessionId, now);
+        return session != null && endpointActive(session, now)
+                ? Optional.of(session.getEndpoint()) : Optional.empty();
+    }
+
+    private Map<String, InetSocketAddress> recipientSnapshot(
+            String roomId, String senderSessionId, Instant now) {
+        Map<String, InetSocketAddress> recipients = new HashMap<>();
+        for (AudioSession session : sessions.values()) {
+            if (!session.getSessionId().equals(senderSessionId)
+                    && session.getRoomId().equals(roomId)
+                    && endpointActive(session, now)) {
+                recipients.put(session.getSessionId(), session.getEndpoint());
+            }
+        }
+        return Map.copyOf(recipients);
+    }
+
+    /**
+     * Inactivity expires delivery eligibility, not the TCP-authorized session.
+     * Retain the binding so another endpoint cannot take over. Existing
+     * same-endpoint registration/activity may refresh eligibility; absolute
+     * session expiry and explicit revocation still invalidate the session.
+     * Checked on lookup, so no scheduler or background thread is needed.
+     */
+    private boolean endpointActive(AudioSession session, Instant now) {
+        Instant lastActivity = session.getLastAuthenticatedActivity();
+        return session.isActive(now) && session.getEndpoint() != null
+                && lastActivity != null
+                && now.isBefore(lastActivity.plus(ENDPOINT_IDLE_TIMEOUT));
     }
 
     public synchronized boolean revokeSession(String sessionId) {

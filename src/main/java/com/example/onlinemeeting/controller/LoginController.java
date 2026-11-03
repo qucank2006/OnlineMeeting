@@ -1,5 +1,6 @@
 package com.example.onlinemeeting.controller;
 
+import com.example.onlinemeeting.config.AppConfig;
 import com.example.onlinemeeting.client.TCPClient;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -109,7 +110,8 @@ public class LoginController {
 
         boolean handedToUi = false;
         try {
-            client.connect("localhost", 5000);
+            AppConfig config = AppConfig.getInstance();
+            client.connect(config.getClientServerHost(), config.getTcpPort());
             if (settled.get()) {
                 throw new InterruptedException();
             }

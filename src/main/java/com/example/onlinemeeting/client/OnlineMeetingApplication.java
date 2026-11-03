@@ -1,5 +1,6 @@
 package com.example.onlinemeeting.client;
 
+import com.example.onlinemeeting.config.AppConfig;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -9,6 +10,8 @@ public class OnlineMeetingApplication extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
+        // Fail clearly before showing forms if network configuration is invalid.
+        AppConfig.getInstance();
 
         FXMLLoader loader = new FXMLLoader(
                 OnlineMeetingApplication.class.getResource(

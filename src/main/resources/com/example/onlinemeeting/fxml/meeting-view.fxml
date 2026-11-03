@@ -1,220 +1,110 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.text.Font?>
+<?import javafx.scene.shape.SVGPath?>
 
-<StackPane fx:id="meetingRoot"
-        xmlns="http://javafx.com/javafx"
-        xmlns:fx="http://javafx.com/fxml"
-        fx:controller="com.example.onlinemeeting.controller.MeetingController"
-        style="-fx-background-color: #202124;">
-<BorderPane>
-
-    <top>
-
-        <HBox
-                alignment="CENTER_LEFT"
-                spacing="20"
-                style="-fx-background-color: #292a2d;">
-
-            <padding>
-                <Insets
-                        top="15"
-                        right="20"
-                        bottom="15"
-                        left="20"/>
-            </padding>
-
-            <Label
-                    text="OnlineMeeting"
-                    style="-fx-text-fill: white;">
-
-                <font>
-                    <Font size="20"/>
-                </font>
-
-            </Label>
-
-            <Region HBox.hgrow="ALWAYS"/>
-
-            <Label
-                    fx:id="roomIdLabel"
-                    style="-fx-text-fill: white;"/>
-
-        </HBox>
-
-    </top>
-
-
-    <center>
-
-        <HBox spacing="10">
-
-            <padding>
-                <Insets
-                        top="15"
-                        right="15"
-                        bottom="15"
-                        left="15"/>
-            </padding>
-
-            <!-- PARTICIPANTS -->
-
-            <GridPane
-                    fx:id="participantsGrid"
-                    alignment="CENTER"
-                    hgap="12"
-                    vgap="12"
-                    HBox.hgrow="ALWAYS">
-
-                <columnConstraints>
-
-                    <ColumnConstraints
-                            percentWidth="50"
-                            hgrow="ALWAYS"/>
-
-                    <ColumnConstraints
-                            percentWidth="50"
-                            hgrow="ALWAYS"/>
-
-                </columnConstraints>
-
-                <rowConstraints>
-
-                    <RowConstraints
-                            percentHeight="50"
-                            vgrow="ALWAYS"/>
-
-                    <RowConstraints
-                            percentHeight="50"
-                            vgrow="ALWAYS"/>
-
-                </rowConstraints>
-
-            </GridPane>
-
-
-            <!-- CHAT -->
-
-            <VBox
-                    prefWidth="300"
-                    minWidth="260"
-                    maxWidth="320"
-                    spacing="10"
-                    style="
-                    -fx-background-color: #292a2d;
-                    -fx-background-radius: 10;
-                ">
-
-                <padding>
-                    <Insets
-                            top="15"
-                            right="15"
-                            bottom="15"
-                            left="15"/>
-                </padding>
-
-                <Label
-                        text="Chat"
-                        style="
-                        -fx-text-fill: white;
-                        -fx-font-size: 18px;
-                        -fx-font-weight: bold;
-                    "/>
-
-                <Separator/>
-
-                <ScrollPane
-                        fitToWidth="true"
-                        VBox.vgrow="ALWAYS"
-                        style="-fx-background-color: transparent;">
-
-                    <VBox
-                            fx:id="chatBox"
-                            spacing="10"
-                            fillWidth="true"/>
-
-                </ScrollPane>
-
-                <HBox spacing="8">
-
-                    <TextField
-                            fx:id="messageField"
-                            promptText="Nhập tin nhắn..."
-                            HBox.hgrow="ALWAYS"
-                            onAction="#handleSendMessage"/>
-
-                    <Button
-                            text="Gửi"
-                            onAction="#handleSendMessage"/>
-
-                </HBox>
-
-            </VBox>
-
-        </HBox>
-
-    </center>
-
-
-    <bottom>
-
-        <VBox
-                alignment="CENTER"
-                spacing="10"
-                style="-fx-background-color: #292a2d;">
-
-            <padding>
-                <Insets
-                        top="15"
-                        right="20"
-                        bottom="15"
-                        left="20"/>
-            </padding>
-
-            <HBox
-                    alignment="CENTER"
-                    spacing="15">
-
-                <Button
-                        fx:id="micButton"
-                        text="🎤 Mic"
-                        prefWidth="120"
-                        prefHeight="45"
-                        onAction="#handleMic"/>
-
-                <Button
-                        text="📹 Camera"
-                        prefWidth="120"
-                        prefHeight="45"
-                        disable="true"/>
-
-                <Button
-                        text="📞 Rời phòng"
-                        prefWidth="120"
-                        prefHeight="45"
-                        onAction="#handleLeave"
-                        style="-fx-background-color: #d93025; -fx-text-fill: white;"/>
-
+<StackPane fx:id="meetingRoot" xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.example.onlinemeeting.controller.MeetingController"
+           styleClass="app-root" stylesheets="@../css/meeting-theme.css">
+    <BorderPane>
+        <top>
+            <HBox styleClass="app-header,meeting-header" spacing="16" alignment="CENTER_LEFT">
+                <Label text="OM" styleClass="brand-mark,compact-brand"/>
+                <Label text="OnlineMeeting" styleClass="brand-title"/>
+                <Separator orientation="VERTICAL" prefHeight="24"/>
+                <Label fx:id="roomIdLabel" text="Mã phòng" styleClass="room-id" minWidth="120"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="participantCountLabel" text="1 người" styleClass="count-badge"/>
+                <Label fx:id="connectionLabel" text="Đang kết nối" styleClass="status-indicator"/>
             </HBox>
-
-            <Label
-                    fx:id="statusLabel"
-                    style="-fx-text-fill: #aaaaaa;"/>
-
-        </VBox>
-
-    </bottom>
-
-</BorderPane>
-    <Label fx:id="toastLabel" visible="false" mouseTransparent="true"
-           wrapText="true" maxWidth="360" maxHeight="-Infinity"
-           StackPane.alignment="TOP_RIGHT"
-           style="-fx-background-color: #313244; -fx-text-fill: #cdd6f4; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 14 18; -fx-background-radius: 12; -fx-border-radius: 12; -fx-border-color: #cba6f7; -fx-effect: dropshadow(gaussian, rgba(17,17,27,0.35), 16, 0.15, 0, 4);">
-        <StackPane.margin>
-            <Insets top="20" right="20" bottom="20" left="20"/>
-        </StackPane.margin>
+        </top>
+        <center>
+            <HBox spacing="18" styleClass="meeting-content" minHeight="0">
+                <VBox spacing="14" minWidth="0" minHeight="0" HBox.hgrow="ALWAYS">
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <Label text="Trong cuộc họp" styleClass="section-title"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label text="Kết nối theo cách của bạn" styleClass="muted-text,small-text"/>
+                    </HBox>
+                    <ScrollPane fx:id="participantsScroll" fitToWidth="true" fitToHeight="true"
+                                hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" minWidth="0" minHeight="0"
+                                VBox.vgrow="ALWAYS" styleClass="video-scroll">
+                        <content>
+                            <GridPane fx:id="participantsGrid" hgap="14" vgap="14"
+                                      alignment="CENTER" styleClass="video-grid" minWidth="0"/>
+                        </content>
+                    </ScrollPane>
+                </VBox>
+                <VBox styleClass="sidebar,meeting-sidebar" prefWidth="310" minWidth="260"
+                      maxWidth="340" spacing="16" minHeight="0">
+                    <VBox spacing="12">
+                        <Label text="Mọi người" styleClass="section-title"/>
+                        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" prefHeight="104" minHeight="0"
+                                    maxHeight="148" styleClass="roster-scroll">
+                            <content><VBox fx:id="participantList" spacing="8"/></content>
+                        </ScrollPane>
+                    </VBox>
+                    <Separator/>
+                    <HBox alignment="CENTER_LEFT" spacing="8">
+                        <Label text="Trò chuyện" styleClass="section-title"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label text="Trong phòng" styleClass="small-text,muted-text"/>
+                    </HBox>
+                    <ScrollPane fx:id="chatScroll" fitToWidth="true" hbarPolicy="NEVER"
+                                minHeight="0" VBox.vgrow="ALWAYS" styleClass="chat-scroll">
+                        <content>
+                            <VBox fx:id="chatBox" spacing="12" fillWidth="true" styleClass="chat-messages"/>
+                        </content>
+                    </ScrollPane>
+                    <HBox spacing="8" alignment="CENTER_LEFT">
+                        <TextField fx:id="messageField" promptText="Gửi tin nhắn…"
+                                   accessibleText="Tin nhắn trong phòng" styleClass="input-field"
+                                   minWidth="0" HBox.hgrow="ALWAYS" onAction="#handleSendMessage"/>
+                        <Button text="Gửi" onAction="#handleSendMessage" styleClass="primary-button,send-button"/>
+                    </HBox>
+                    <Label text="Nhấn Enter để gửi tin nhắn." styleClass="muted-text,small-text"/>
+                </VBox>
+            </HBox>
+        </center>
+        <bottom>
+            <VBox styleClass="meeting-toolbar" spacing="10">
+                <HBox spacing="12" alignment="CENTER">
+                    <Button fx:id="micButton" text="Mic tắt" onAction="#handleMic"
+                            styleClass="control-button" prefWidth="138">
+                        <graphic>
+                            <SVGPath content="M 7 5 C 7 1 13 1 13 5 L 13 10 C 13 14 7 14 7 10 Z M 4 9 L 4 10 C 4 18 16 18 16 10 L 16 9 M 10 17 L 10 20 M 6 20 L 14 20"
+                                     styleClass="control-icon"/>
+                        </graphic>
+                    </Button>
+                    <Button fx:id="cameraButton" text="Camera tắt" onAction="#handleCamera"
+                            disable="true" styleClass="control-button" prefWidth="138">
+                        <graphic>
+                            <SVGPath content="M 2 5 L 13 5 L 13 16 L 2 16 Z M 13 9 L 19 6 L 19 15 L 13 12"
+                                     styleClass="control-icon"/>
+                        </graphic>
+                    </Button>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="Rời cuộc họp" onAction="#handleLeave"
+                            styleClass="danger-button" prefWidth="156">
+                        <graphic>
+                            <SVGPath content="M 8 3 L 3 3 L 3 17 L 8 17 M 8 10 L 19 10 M 15 6 L 19 10 L 15 14"
+                                     styleClass="button-icon"/>
+                        </graphic>
+                    </Button>
+                </HBox>
+                <HBox spacing="18" alignment="CENTER_LEFT" minWidth="0">
+                    <Label fx:id="statusLabel" styleClass="media-status" minWidth="0" maxWidth="Infinity"
+                           HBox.hgrow="ALWAYS" textOverrun="ELLIPSIS"/>
+                    <Label fx:id="videoStatusLabel" text="Video stopped" styleClass="media-status"
+                           minWidth="0" maxWidth="Infinity" HBox.hgrow="ALWAYS" textOverrun="ELLIPSIS"/>
+                </HBox>
+            </VBox>
+        </bottom>
+    </BorderPane>
+    <Label fx:id="toastLabel" visible="false" mouseTransparent="true" wrapText="true"
+           maxWidth="360" maxHeight="-Infinity" StackPane.alignment="TOP_RIGHT" styleClass="meeting-toast">
+        <StackPane.margin><Insets top="86" right="22" bottom="20" left="20"/></StackPane.margin>
     </Label>
 </StackPane>

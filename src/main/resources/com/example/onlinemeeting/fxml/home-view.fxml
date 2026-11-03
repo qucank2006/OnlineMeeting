@@ -1,64 +1,122 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.text.Font?>
+<?import javafx.scene.shape.SVGPath?>
 
-<StackPane
-        xmlns="http://javafx.com/javafx"
-        xmlns:fx="http://javafx.com/fxml"
-        fx:controller="com.example.onlinemeeting.controller.HomeController">
-
-    <VBox
-            alignment="CENTER"
-            maxWidth="500"
-            spacing="20">
-
-        <padding>
-            <Insets
-                    top="40"
-                    right="40"
-                    bottom="40"
-                    left="40"/>
-        </padding>
-
-        <Label fx:id="welcomeLabel">
-            <font>
-                <Font size="28"/>
-            </font>
-        </Label>
-
-        <Label
-                text="Bắt đầu hoặc tham gia một cuộc họp"/>
-
-        <Button
-                text="Tạo cuộc họp mới"
-                prefHeight="50"
-                maxWidth="Infinity"
-                onAction="#handleCreateRoom"/>
-
-        <Separator/>
-
-        <Label text="Hoặc tham gia bằng Room ID"/>
-
-        <TextField
-                fx:id="roomIdField"
-                promptText="Ví dụ: A7F29C"
-                prefHeight="45"
-                onAction="#handleJoinRoom"/>
-
-        <Button
-                text="Tham gia"
-                prefHeight="45"
-                maxWidth="Infinity"
-                onAction="#handleJoinRoom"/>
-
-        <Label
-                fx:id="errorLabel"
-                wrapText="true"
-                style="-fx-text-fill: #d32f2f;"/>
-
-    </VBox>
-
-</StackPane>
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.example.onlinemeeting.controller.HomeController"
+            styleClass="app-root" stylesheets="@../css/meeting-theme.css">
+    <left>
+        <VBox styleClass="sidebar,home-sidebar" prefWidth="196" minWidth="176" minHeight="0" spacing="20">
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label text="OM" styleClass="brand-mark"/>
+                <VBox spacing="2">
+                    <Label text="OnlineMeeting" styleClass="brand-title"/>
+                    <Label text="Cùng nhau kết nối" styleClass="small-text,muted-text"/>
+                </VBox>
+            </HBox>
+            <VBox spacing="10">
+                <Label text="KHÔNG GIAN LÀM VIỆC" styleClass="eyebrow"/>
+                <Label text="Tổng quan" styleClass="nav-item,nav-current" maxWidth="Infinity"/>
+            </VBox>
+            <VBox spacing="10">
+                <Label text="CUỘC HỌP" styleClass="eyebrow"/>
+                <Button text="Tạo cuộc họp" onAction="#handleCreateRoom"
+                        styleClass="nav-item,nav-action" maxWidth="Infinity"/>
+                <Label text="Tạo phòng mới hoặc nhập mã để gặp gỡ mọi người."
+                       wrapText="true" styleClass="muted-text,small-text"/>
+            </VBox>
+            <Region VBox.vgrow="ALWAYS"/>
+            <VBox spacing="16">
+                <Separator/>
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label fx:id="accountAvatar" text="U" styleClass="account-avatar"/>
+                    <VBox spacing="3" minWidth="0" HBox.hgrow="ALWAYS">
+                        <Label fx:id="accountLabel" text="Tài khoản" maxWidth="Infinity"
+                               styleClass="account-name"/>
+                        <Label text="Đã đăng nhập" styleClass="muted-text,small-text"/>
+                    </VBox>
+                </HBox>
+            </VBox>
+        </VBox>
+    </left>
+    <center>
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="content-scroll">
+            <content>
+                <VBox spacing="26" styleClass="dashboard-content" fillWidth="true">
+                    <HBox alignment="CENTER_LEFT" spacing="12" styleClass="app-header,dashboard-header">
+                        <Label text="TỔNG QUAN" styleClass="eyebrow"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label text="Không gian họp của bạn" styleClass="muted-text,small-text"/>
+                    </HBox>
+                    <VBox spacing="10">
+                        <Label fx:id="welcomeLabel" text="Xin chào" styleClass="page-title"
+                               wrapText="true" maxWidth="Infinity"/>
+                        <Label text="Một nơi để gặp gỡ, chia sẻ và giữ kết nối."
+                               styleClass="muted-text,subtitle" wrapText="true"/>
+                    </VBox>
+                    <GridPane fx:id="homeActionGrid" hgap="18" vgap="18">
+                        <columnConstraints>
+                            <ColumnConstraints percentWidth="50" hgrow="ALWAYS" minWidth="0"/>
+                            <ColumnConstraints percentWidth="50" hgrow="ALWAYS" minWidth="0"/>
+                        </columnConstraints>
+                        <VBox fx:id="newMeetingCard" styleClass="card,action-card,new-meeting-card"
+                              spacing="14" minWidth="0" minHeight="272" GridPane.columnIndex="0">
+                            <Label text="BẮT ĐẦU CUỘC TRÒ CHUYỆN" styleClass="eyebrow,accent-text" wrapText="true"/>
+                            <Label text="Cuộc họp mới" styleClass="card-title"/>
+                            <Label text="Tạo không gian riêng, sau đó chia sẻ mã phòng với người bạn muốn mời."
+                                   styleClass="muted-text" wrapText="true"/>
+                            <Region VBox.vgrow="ALWAYS"/>
+                            <Button text="Tạo cuộc họp mới" onAction="#handleCreateRoom"
+                                    styleClass="primary-button" maxWidth="Infinity">
+                                <graphic>
+                                    <SVGPath content="M 10 3 L 10 17 M 3 10 L 17 10" styleClass="button-icon"/>
+                                </graphic>
+                            </Button>
+                        </VBox>
+                        <VBox fx:id="joinMeetingCard" styleClass="card,action-card" spacing="12"
+                              minWidth="0" minHeight="272" GridPane.columnIndex="1">
+                            <Label text="ĐÃ CÓ LỜI MỜI?" styleClass="eyebrow"/>
+                            <Label text="Tham gia cuộc họp" styleClass="card-title" wrapText="true"/>
+                            <Label text="Nhập mã phòng được chia sẻ để tham gia."
+                                   styleClass="muted-text" wrapText="true"/>
+                            <Region VBox.vgrow="ALWAYS"/>
+                            <TextField fx:id="roomIdField" promptText="Mã phòng · ví dụ A7F29C"
+                                       accessibleText="Mã phòng" styleClass="input-field,room-code-input"
+                                       onAction="#handleJoinRoom" minWidth="0"/>
+                            <Button text="Tham gia" onAction="#handleJoinRoom"
+                                    styleClass="secondary-button" maxWidth="Infinity"/>
+                        </VBox>
+                    </GridPane>
+                    <Label fx:id="errorLabel" text="" styleClass="error-text"
+                           wrapText="true" maxWidth="Infinity"/>
+                    <VBox styleClass="card,feature-card" spacing="18">
+                        <Label text="Mọi thứ cho một cuộc họp" styleClass="section-title"/>
+                        <FlowPane hgap="28" vgap="18" prefWrapLength="700">
+                            <VBox spacing="5" prefWidth="170">
+                                <Label text="Gặp mặt trực tiếp" styleClass="feature-title"/>
+                                <Label text="Xem video và bật, tắt camera khi cần." wrapText="true"
+                                       styleClass="muted-text,small-text"/>
+                            </VBox>
+                            <VBox spacing="5" prefWidth="170">
+                                <Label text="Lắng nghe rõ ràng" styleClass="feature-title"/>
+                                <Label text="Trò chuyện bằng giọng nói và chủ động bật, tắt mic." wrapText="true"
+                                       styleClass="muted-text,small-text"/>
+                            </VBox>
+                            <VBox spacing="5" prefWidth="170">
+                                <Label text="Chia sẻ tức thì" styleClass="feature-title"/>
+                                <Label text="Gửi tin nhắn cho mọi người ngay trong phòng." wrapText="true"
+                                       styleClass="muted-text,small-text"/>
+                            </VBox>
+                        </FlowPane>
+                    </VBox>
+                    <HBox spacing="8" alignment="CENTER_LEFT">
+                        <Label text="PHIÊN KẾT NỐI" styleClass="eyebrow"/>
+                        <Label fx:id="connectionLabel" text="Chưa có thông tin kết nối"
+                               styleClass="status-indicator" wrapText="true"/>
+                    </HBox>
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>
